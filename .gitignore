@@ -2,6 +2,7 @@
 data/*
 models/*
 runs
+.DS_Store
 torchaudio-augmentations
 
 # Byte-compiled / optimized / DLL files
