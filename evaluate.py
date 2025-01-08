@@ -1,10 +1,9 @@
 import torch
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, confusion_matrix
 from model import CNN
-from gtzan_loader import test_loader, GTZAN_GENRES
+from gtzan_loader import get_dataloader, GTZAN_GENRES
 from datetime import datetime
 
 if __name__ == "__main__":
@@ -21,6 +20,8 @@ if __name__ == "__main__":
     cnn.eval()
     y_true = []
     y_pred = []
+
+    test_loader = get_dataloader(split="test")
 
     with torch.no_grad():
         for wav, genre_index in test_loader:

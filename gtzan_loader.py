@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import soundfile as sf
 from torch.utils import data
-from config import DATA_PATH
+from config import DATA_PATH, WITH_AUGMENTATION
 
 # from torchaudio_augmentations import (
 #     RandomResizedCrop,
@@ -137,12 +137,12 @@ def get_dataloader(
     return data_loader
 
 
-train_loader = get_dataloader(split="train", is_augmentation=False)
-valid_loader = get_dataloader(split="valid")
-test_loader = get_dataloader(split="test")
 
 
 if __name__ == "__main__":
+    train_loader = get_dataloader(split="train", is_augmentation=WITH_AUGMENTATION)
+    valid_loader = get_dataloader(split="valid")
+    test_loader = get_dataloader(split="test")
     iter_train_loader = iter(train_loader)
     train_wav, train_genre = next(iter_train_loader)
     iter_test_loader = iter(test_loader)

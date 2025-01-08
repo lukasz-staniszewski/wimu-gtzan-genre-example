@@ -2,10 +2,10 @@ import numpy as np
 import torch
 from torch import nn
 from model import CNN
-from gtzan_loader import train_loader, valid_loader
+from gtzan_loader import get_dataloader
 from sklearn.metrics import accuracy_score
 from datetime import datetime
-from config import LEARNING_RATE, NUM_EPOCHS
+from config import LEARNING_RATE, NUM_EPOCHS, WITH_AUGMENTATION
 from torch.utils.tensorboard import SummaryWriter
 
 if __name__ == "__main__":
@@ -21,6 +21,10 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(cnn.parameters(), lr=LEARNING_RATE)
     valid_losses = []
     num_epochs = NUM_EPOCHS
+
+    # get dataloaders
+    train_loader = get_dataloader(split="train", is_augmentation=WITH_AUGMENTATION)
+    valid_loader = get_dataloader(split="valid")
 
     for epoch in range(num_epochs):
         losses = []
