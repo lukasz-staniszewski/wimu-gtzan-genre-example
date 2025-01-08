@@ -1,23 +1,24 @@
 import os
 import random
-import torch
+
 import numpy as np
 import soundfile as sf
+import torch
+from audiomentations import (
+    AddGaussianSNR,
+    Clip,
+    Compose,
+    Gain,
+    HighPassFilter,
+    LowPassFilter,
+    OneOf,
+    PitchShift,
+    PolarityInversion,
+    Shift,
+)
 from torch.utils import data
-from config import DATA_PATH, WITH_AUGMENTATION
 
-# from torchaudio_augmentations import (
-#     RandomResizedCrop,
-#     RandomApply,
-#     PolarityInversion,
-#     Noise,
-#     Gain,
-#     HighLowPass,
-#     Delay,
-#     PitchShift,
-#     Reverb,
-#     Compose,
-# )
+from config import DATA_PATH, WITH_AUGMENTATION
 
 GTZAN_GENRES = [
     "blues",
@@ -52,20 +53,21 @@ class GTZANDataset(data.Dataset):
         self.song_list = [line.strip() for line in lines]
 
     def _get_augmentations(self):
-        # transforms = [
-        #     RandomResizedCrop(n_samples=self.num_samples),
-        #     RandomApply([PolarityInversion()], p=0.8),
-        #     RandomApply([Noise(min_snr=0.3, max_snr=0.5)], p=0.3),
-        #     RandomApply([Gain()], p=0.2),
-        #     RandomApply([HighLowPass(sample_rate=22050)], p=0.8),
-        #     RandomApply([Delay(sample_rate=22050)], p=0.5),
-        #     RandomApply(
-        #         [PitchShift(n_samples=self.num_samples, sample_rate=22050)], p=0.4
-        #     ),
-        #     RandomApply([Reverb(sample_rate=22050)], p=0.3),
-        # ]
-        # self.augmentation = Compose(transforms=transforms)
-        pass
+        transforms = [
+            Clip(p=0.5),
+            PolarityInversion(p=0.8),
+            AddGaussianSNR(p=0.3),
+            Gain(min_gain_db=-20, max_gain_db=-1, p=0.2),
+            OneOf(
+                [
+                    HighPassFilter(p=0.8),
+                    LowPassFilter(p=0.8),
+                ]
+            ),
+            PitchShift(p=0.4),
+            Shift(min_shift=0.0, p=0.5),
+        ]
+        self.augmentation = Compose(transforms=transforms)
 
     def _adjust_audio_length(self, wav):
         """
@@ -80,12 +82,7 @@ class GTZANDataset(data.Dataset):
             wav = wav[random_index : random_index + self.num_samples]
         else:
             hop = (len(wav) - self.num_samples) // self.num_chunks
-            wav = np.array(
-                [
-                    wav[i * hop : i * hop + self.num_samples]
-                    for i in range(self.num_chunks)
-                ]
-            )
+            wav = np.array([wav[i * hop : i * hop + self.num_samples] for i in range(self.num_chunks)])
         return wav
 
     def __getitem__(self, index):
@@ -104,9 +101,7 @@ class GTZANDataset(data.Dataset):
 
         # data augmentation
         if self.is_augmentation:
-            wav = (
-                self.augmentation(torch.from_numpy(wav).unsqueeze(0)).squeeze(0).numpy()
-            )
+            wav = self.augmentation(wav, sample_rate=22_050)
 
         return wav, genre_index
 
@@ -126,17 +121,13 @@ def get_dataloader(
     is_shuffle = True if (split == "train") else False
     batch_size = batch_size if (split == "train") else (batch_size // num_chunks)
     data_loader = data.DataLoader(
-        dataset=GTZANDataset(
-            data_path, split, num_samples, num_chunks, is_augmentation
-        ),
+        dataset=GTZANDataset(data_path, split, num_samples, num_chunks, is_augmentation),
         batch_size=batch_size,
         shuffle=is_shuffle,
         drop_last=False,
         num_workers=num_workers,
     )
     return data_loader
-
-
 
 
 if __name__ == "__main__":
